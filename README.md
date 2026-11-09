@@ -1,5 +1,7 @@
 # DropZone
 
+[![CI](https://github.com/LucasChaudet/dropzone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LucasChaudet/dropzone/actions/workflows/ci.yml)
+
 Plateforme de **drops** de sneakers en édition limitée : un drop met en vente un nombre fixe de paires à une heure précise, et les acheteurs commandent jusqu'à épuisement du stock.
 
 > Projet pédagogique (BTS SIO SLAM, cours « Introduction DevOps »). L'application fonctionne ; il lui manque tout ce qui permet de la livrer et de l'exploiter : conteneurs, intégration continue, déploiement, monitoring. C'est l'objet du TP. L'application n'a pas d'authentification.
@@ -105,7 +107,28 @@ npm run build             # build de production (dossier dist/)
 npm run test:e2e          # Playwright : nécessite l'application complète sur http://localhost:8080
 ```
 
-Les tests Playwright visent l'adresse `http://localhost:8080` (variable `E2E_BASE_URL` pour en viser une autre). Avant le premier lancement : `npx playwright install chromium`.
+Les tests Playwright visent l'adresse `http://localhost:8080` (variable `E2E_BASE_URL` pour en viser une autre). Avant le premier lancement : `npx playwright install chromium`. Chaque scénario crée son propre drop par l'API : les tests ne dépendent ni des données de démo, ni les uns des autres.
+
+## Intégration continue
+
+Le workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) tourne sur chaque pull request vers `main` et sur chaque push sur `main`.
+
+| Job | Contenu | Démarre |
+|---|---|---|
+| Lint | Ruff (lint + format) pour l'API, ESLint et TypeScript pour le front | tout de suite |
+| Tests backend | pytest avec couverture (minimum 85 %) | tout de suite, en parallèle |
+| Tests frontend | Vitest, puis le build de production | tout de suite, en parallèle |
+| E2E | stack Docker Compose + Playwright ; rapport HTML gardé en artefact `playwright-report`, même en cas d'échec | seulement si les trois autres sont verts |
+
+- Les dépendances pip et npm sont mises en **cache** (clé : `requirements-dev.txt` et `package-lock.json`).
+- Le jeton du workflow n'a que le droit de **lire** le code (`permissions: contents: read`).
+- Les quatre jobs sont des **vérifications obligatoires** de la protection de `main` : une PR rouge ne peut pas être mergée.
+
+Lancer un job sur son poste avec [act](https://nektosact.com/) (Docker requis), par exemple :
+
+```bash
+act pull_request -j backend-tests
+```
 
 ## API
 
@@ -176,7 +199,7 @@ Le détail des consignes est dans la fiche **« TP DropZone »**.
 |---|---|---|
 | 1 | Dépôt d'aplomb : audit, README, `main` protégée, Conventional Commits, version `v0.1.0` | fait |
 | 2 | Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example` | fait |
-| 3 | Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge | à faire |
+| 3 | Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge | fait |
 | 4 | Déploiement continu : images sur ghcr.io, front sur GitHub Pages, release à chaque tag | à faire |
 | 5 | Observer : health checks Docker, logs structurés, métriques `/metrics`, Uptime Kuma | à faire |
 
