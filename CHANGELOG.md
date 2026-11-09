@@ -6,6 +6,17 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ajouté
+
+- Image Docker multi-stage de l'API, lancée par un utilisateur non-root sur le port 8000.
+- Image Docker du front : build Node puis nginx non-root sur le port 8080.
+- `compose.yml` : stack complète (PostgreSQL 16 avec volume et healthcheck, API, front) lancée en une commande.
+- `.env.example` avec toutes les variables de la stack.
+
+### Modifié
+
+- `AUDIT.md` suit la grille d'audit du cours (13 points).
+
 ## [0.1.0] - 2026-11-09
 
 ### Ajouté
