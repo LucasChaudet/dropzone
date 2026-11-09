@@ -2,7 +2,6 @@
 
 Plateforme de **drops** de sneakers en édition limitée : un drop met en vente un nombre fixe de paires à une heure précise, et les acheteurs commandent jusqu'à épuisement du stock.
 
-> Projet pédagogique (BTS SIO SLAM, cours « Introduction DevOps »). L'application fonctionne ; il lui manque tout ce qui permet de la livrer et de l'exploiter : conteneurs, intégration continue, déploiement, monitoring. C'est l'objet du TP. L'application n'a pas d'authentification.
 
 | Document | Contenu |
 |---|---|
