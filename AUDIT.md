@@ -1,78 +1,65 @@
-# Audit DevOps du dépôt DropZone
+# Grille d'audit DevOps
 
-Audit réalisé le 09/11/2026 sur le dépôt de départ (commit `1bd9fe7`, « Initial commit »), avant toute modification.
+**Projet audité :** DropZone (dépôt de départ, commit `1bd9fe7` « Initial commit », audit du 09/11/2026)
+**Stack :** API Python 3.12 / FastAPI / SQLAlchemy (SQLite en local, PostgreSQL prévu) · front React 19 / Vite / TypeScript
 
-Notes possibles : **OK** · **Partiel** · **Absent**
+Notation : ✅ OK · ⚠️ partiel · ❌ absent. La colonne « Constat » indique ce qui a été vu (fichier, commande, lien).
 
-## Grille d'audit
+## Git
 
-### Git
+| Point vérifié | ✅ | ⚠️ | ❌ | Constat |
+|---|:-:|:-:|:-:|---|
+| Dépôt GitHub existant et accessible | ✅ | | | `https://github.com/LucasChaudet/dropzone`, créé depuis le template, branche par défaut `main`. |
+| `.gitignore` adapté à la stack (pas de `node_modules`, `vendor`, `.env`…) | ✅ | | | Ignore `.env`, `.venv/`, `__pycache__/`, `*.db`, `node_modules/`, `dist/`, rapports de tests. Complété ensuite pour toutes les variantes `.env.*`. |
+| Historique de commits lisible (pas de « fix », « wip », « aaaa ») | | ⚠️ | | Un seul commit, « Initial commit » : lisible, mais aucune convention de message. |
+| Branche `main` protégée (pas de push direct) | | | ❌ | `gh api repos/LucasChaudet/dropzone/branches/main/protection` → « Branch not protected ». |
 
-| Critère | Note | Constat |
-|---|:-:|---|
-| Dépôt GitHub existant et accessible | OK | Dépôt `LucasChaudet/dropzone`, créé depuis le template, branche par défaut `main`. |
-| `.gitignore` adapté à la stack | OK | Couvre `.env`, `.venv/`, `__pycache__/`, `*.db`, `node_modules/`, `dist/`, les rapports de tests et de couverture. Seules les variantes `.env.*` (ex. `.env.local`) n'étaient pas couvertes : ajoutées. |
-| Historique de commits lisible | Partiel | Un seul commit (« Initial commit ») ; aucune convention de message. |
-| Branche `main` protégée | Absent | L'API GitHub répond « Branch not protected » : un push direct sur `main` est possible. |
-| Guide de contribution, changelog, modèle de PR | Absent | Ni `CONTRIBUTING.md`, ni `CHANGELOG.md`, ni `.github/pull_request_template.md`. |
-| Versions taguées | Absent | La version `0.1.0` figure dans `pyproject.toml`, `package.json` et la réponse de `/health/ready`, mais aucun tag Git n'existe. |
+## Build et lancement
 
-### Build & Run
+| Point vérifié | ✅ | ⚠️ | ❌ | Constat |
+|---|:-:|:-:|:-:|---|
+| L'application démarre en une seule commande documentée | | ⚠️ | | Lancement documenté dans le README, mais en plusieurs commandes, dans deux terminaux (venv + `uvicorn`, puis `npm ci` + `npm run dev`). Aucun Dockerfile ni `compose.yml`. |
+| Les dépendances sont listées (`package.json`, `requirements.txt`…) | ✅ | | | `backend/requirements.txt` et `requirements-dev.txt` épinglés, `frontend/package.json` + `package-lock.json`. |
+| Aucun chemin absolu codé en dur (ex. `C:\Users\moi\...`) | ✅ | | | Recherche dans le code : aucun chemin absolu ; la base SQLite est relative (`sqlite:///./dropzone.db`). |
 
-| Critère | Note | Constat |
-|---|:-:|---|
-| Démarrage documenté | OK | Le README décrit le lancement de l'API (venv + uvicorn) et du front (`npm ci`, `npm run dev`). Vérifié : l'API répond sur le port 8000, le front sur le port 5173 affiche les drops. |
-| Dépendances listées et épinglées | OK | `requirements.txt` / `requirements-dev.txt` épinglés (`==`), `package-lock.json` versionné, `.npmrc` en `save-exact`. |
-| Version des outils déclarée | OK | `requires-python = ">=3.12"`, `engines.node >= 22.12`, `.nvmrc`. |
-| Démarrage en une commande | Absent | Deux terminaux et deux environnements (Python, Node) sont nécessaires. Aucun Dockerfile ni `compose.yml`. |
-| Configuration par variables d'environnement | Partiel | Variables documentées dans le README, mais pas de fichier `.env.example`. |
+## Tests
 
-### Tests et qualité
+| Point vérifié | ✅ | ⚠️ | ❌ | Constat |
+|---|:-:|:-:|:-:|---|
+| Des tests existent | ✅ | | | API : 26 tests pytest (couverture 94 %). Front : 9 tests Vitest et 1 scénario Playwright. |
+| Les tests s'exécutent en une seule commande | | ⚠️ | | Une commande par partie (`pytest` dans `backend/`, `npm test` dans `frontend/`), chacune dans son environnement ; Playwright exige l'application complète sur le port 8080. Aucune CI. |
 
-| Critère | Note | Constat |
-|---|:-:|---|
-| Des tests existent | Partiel | API : 26 tests pytest, couverture 94 % (minimum 85 % exigé). Front : 9 tests Vitest, 1 scénario Playwright. Manquent : les tests des commandes côté API, le test du composant `DropCard`, les scénarios E2E de commande. |
-| Lint et format | OK | Ruff (API), ESLint et TypeScript (front) configurés et sans erreur. |
-| Les tests s'exécutent automatiquement | Absent | Aucune intégration continue (pas de dossier `.github/workflows/`). |
-| Tests E2E exécutables | Partiel | Playwright vise `http://localhost:8080`, une adresse qui n'existe pas tant que l'application n'est pas conteneurisée. |
+## Déploiement
 
-### Déploiement
+| Point vérifié | ✅ | ⚠️ | ❌ | Constat |
+|---|:-:|:-:|:-:|---|
+| La méthode de déploiement actuelle est connue et documentée | | | ❌ | Aucune : ni image Docker, ni pipeline, ni hébergement. |
+| Un environnement de staging existe (différent de la prod) | | | ❌ | Seul le poste du développeur existe. |
 
-| Critère | Note | Constat |
-|---|:-:|---|
-| Méthode de déploiement connue | Absent | Ni image Docker, ni pipeline, ni hébergement. |
-| Publication de versions | Absent | Ni release GitHub, ni image publiée sur un registre. |
-| Retour à la version précédente | Absent | Aucune procédure. |
+## Monitoring
 
-### Monitoring
-
-| Critère | Note | Constat |
-|---|:-:|---|
-| Endpoints de santé | OK | `GET /health` (liveness) et `GET /health/ready` (readiness, `503` si la base ne répond pas). |
-| Logs exploitables | Partiel | Logs texte sur la sortie standard, avec durée des requêtes ; pas de format structuré (JSON). |
-| Métriques | Absent | Pas d'endpoint `/metrics`. |
-| Supervision et alertes | Absent | Aucune sonde, aucune notification. |
+| Point vérifié | ✅ | ⚠️ | ❌ | Constat |
+|---|:-:|:-:|:-:|---|
+| L'URL de production est surveillée | | | ❌ | Pas d'URL de production, aucune sonde. L'API expose déjà `/health` et `/health/ready`. |
+| Les logs sont accessibles | | ⚠️ | | Logs texte sur la sortie standard du terminal (`backend/app/logging_config.py`) ; non structurés, non conservés. |
 
 ## Bilan
 
-| OK | Partiel | Absent |
-|:-:|:-:|:-:|
-| 7 | 5 | 10 |
+**Total : 5 ✅ · 4 ⚠️ · 4 ❌ (sur 13 points)**
 
-## Ce qui est risqué
+**Mes 3 priorités d'amélioration (les ❌ les plus bloquants) :**
 
-1. **`main` n'est pas protégée et rien ne vérifie le code** : un commit cassé peut être poussé directement sur `main` sans que personne ne s'en aperçoive.
-2. **Aucune livraison reproductible** : l'application ne tourne que sur un poste configuré à la main ; impossible de livrer ni de revenir à une version précédente.
-3. **Aucune supervision** : une panne de la base ou de l'API ne serait signalée par personne.
-4. **Dépendances** : `npm audit` signale 10 vulnérabilités de gravité modérée dans les dépendances du front (aucune haute ni critique).
-5. **Pas d'authentification** (choix assumé et documenté du projet pédagogique) : l'API ne doit pas être exposée publiquement avec des données réelles.
+1. **Protéger `main`** : pull request obligatoire, puis CI obligatoire. Sans cela, un code cassé arrive directement sur la branche livrée. *(Fait en partie 1.)*
+2. **Rendre le déploiement reproductible** : conteneuriser l'application (partie 2), puis publier chaque version automatiquement (partie 4).
+3. **Surveiller l'application** : health checks, logs structurés, métriques et sonde avec alerte (partie 5).
 
-## Plan d'action
+## Présent, manquant, risqué
 
-| Partie | Ce qui corrige l'audit |
-|---|---|
-| 1 | `AUDIT.md`, README, `CONTRIBUTING.md`, `CHANGELOG.md`, modèle de PR, protection de `main`, tag `v0.1.0` |
-| 2 | Dockerfiles, `.dockerignore`, `compose.yml`, `.env.example` |
-| 3 | Workflow CI (lint, tests, E2E), tests manquants, CI obligatoire sur `main` |
-| 4 | Workflow CD : images sur ghcr.io, front sur GitHub Pages, release, procédure de rollback |
-| 5 | Health checks Docker, logs JSON, `/metrics`, Uptime Kuma avec alerte |
+- **Présent** : une application fonctionnelle et testée, des dépendances épinglées, une configuration par variables d'environnement, des endpoints de santé.
+- **Manquant** : conteneurs, `.env.example`, intégration continue, déploiement, versions taguées, supervision, guide de contribution et changelog.
+- **Risqué** :
+  - `main` non protégée et aucune CI : un commit cassé peut atteindre la branche livrée sans que personne ne s'en aperçoive ;
+  - l'application ne tourne que sur un poste configuré à la main : impossible de livrer ou de revenir en arrière ;
+  - aucune alerte en cas de panne ;
+  - `npm audit` signale 10 vulnérabilités modérées dans les dépendances du front (aucune haute ni critique) ;
+  - pas d'authentification (choix du projet pédagogique) : l'API ne doit pas être exposée avec des données réelles.
