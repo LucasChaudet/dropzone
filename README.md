@@ -4,6 +4,12 @@ Plateforme de **drops** de sneakers en édition limitée : un drop met en vente 
 
 > Projet pédagogique (BTS SIO SLAM, cours « Introduction DevOps »). L'application fonctionne ; il lui manque tout ce qui permet de la livrer et de l'exploiter : conteneurs, intégration continue, déploiement, monitoring. C'est l'objet du TP. L'application n'a pas d'authentification.
 
+| Document | Contenu |
+|---|---|
+| [AUDIT.md](AUDIT.md) | état du dépôt avant le TP : présent, manquant, risqué |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | branches, format des commits, cycle d'une pull request, versions |
+| [CHANGELOG.md](CHANGELOG.md) | évolutions de chaque version |
+
 ## Fonctionnalités
 
 - Liste des drops avec leur statut (`upcoming`, `live`, `sold_out`), un filtre par statut et un compte à rebours avant l'ouverture.
@@ -22,6 +28,11 @@ Plateforme de **drops** de sneakers en édition limitée : un drop met en vente 
 
 Prérequis : Git, Python 3.12 ou plus récent, Node.js 22.12 ou plus récent.
 
+```bash
+git clone https://github.com/LucasChaudet/dropzone.git
+cd dropzone
+```
+
 **API**, dans un premier terminal :
 
 ```bash
@@ -31,6 +42,10 @@ source .venv/bin/activate              # Windows : .venv\Scripts\activate
 pip install -r requirements-dev.txt
 uvicorn app.main:app --reload
 ```
+
+Sous Windows (PowerShell), créer l'environnement avec `py -m venv .venv`. Si `Activate.ps1` est bloqué par la politique d'exécution, lancer les outils sans activer le venv : `.venv\Scripts\python.exe -m uvicorn app.main:app --reload`.
+
+Si le port 8000 est déjà utilisé (erreur `WinError 10013` sous Windows), une autre instance de l'API tourne déjà : l'arrêter, ou lancer celle-ci avec `--port 8001`.
 
 - L'API répond sur <http://localhost:8000> ; documentation interactive sur <http://localhost:8000/docs>.
 - Par défaut, elle utilise une base SQLite locale (fichier `backend/dropzone.db`, ignoré par Git), créée et remplie au premier démarrage.
@@ -113,15 +128,26 @@ La configuration passe par des variables d'environnement (ou un fichier `backend
     └── playwright.config.ts
 ```
 
-## Ce qu'il reste à faire
+## Contribuer
 
-Le détail des consignes est dans la fiche **« TP DropZone »**. En résumé :
+- `main` est protégée : pas de push direct, chaque changement passe par une branche et une pull request.
+- Branches nommées `<type>/<description>` (ex. `feat/filtre-par-prix`), commits au format **Conventional Commits** (ex. `fix(api): reject orders on sold-out drops`).
+- Avant de pousser : lint et tests de la partie modifiée (voir « Qualité et tests »).
+- Les versions sont publiées par un tag annoté `vX.Y.Z` sur `main` et décrites dans le [CHANGELOG](CHANGELOG.md).
 
-1. Remettre le dépôt d'aplomb : README, branche `main` protégée, Conventional Commits, première version taguée.
-2. Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example`.
-3. Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge.
-4. Déploiement continu : images publiées sur ghcr.io, front sur GitHub Pages, release à chaque tag.
-5. Observer : health checks Docker, logs structurés, métriques `/metrics`, supervision avec Uptime Kuma.
+Le détail est dans [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Feuille de route
+
+Le détail des consignes est dans la fiche **« TP DropZone »**.
+
+| Partie | Contenu | État |
+|---|---|---|
+| 1 | Dépôt d'aplomb : audit, README, `main` protégée, Conventional Commits, version `v0.1.0` | en cours |
+| 2 | Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example` | à faire |
+| 3 | Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge | à faire |
+| 4 | Déploiement continu : images sur ghcr.io, front sur GitHub Pages, release à chaque tag | à faire |
+| 5 | Observer : health checks Docker, logs structurés, métriques `/metrics`, Uptime Kuma | à faire |
 
 ## Licence
 
