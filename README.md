@@ -22,15 +22,42 @@ Plateforme de **drops** de sneakers en édition limitée : un drop met en vente 
 |---|---|
 | API (`backend/`) | Python 3.12, FastAPI, SQLAlchemy 2, SQLite en local ou PostgreSQL, pytest, Ruff |
 | Front (`frontend/`) | React 19, Vite, TypeScript, ESLint, Vitest + Testing Library, Playwright |
+| Conteneurs | Docker, Docker Compose, PostgreSQL 16, nginx (image `nginxinc/nginx-unprivileged`) |
 
-## Lancer le projet en local (sans Docker)
+## Lancer avec Docker (recommandé)
 
-Prérequis : Git, Python 3.12 ou plus récent, Node.js 22.12 ou plus récent.
+Seul prérequis : Docker avec Docker Compose (Docker Desktop).
 
 ```bash
 git clone https://github.com/LucasChaudet/dropzone.git
 cd dropzone
+cp .env.example .env          # Windows PowerShell : Copy-Item .env.example .env
+docker compose up -d --build --wait
 ```
+
+| Service | Image | Rôle | Adresse |
+|---|---|---|---|
+| `db` | `postgres:16-alpine` | base de données, données dans le volume `db-data` | interne (`db:5432`) |
+| `api` | construite depuis `backend/Dockerfile` | API FastAPI, utilisateur non-root `app` | <http://localhost:8000> |
+| `front` | construite depuis `frontend/Dockerfile` | front servi par nginx, `/api/` redirigé vers `api` | <http://localhost:8080> |
+
+- `api` ne démarre que lorsque `db` est `healthy` (sonde `pg_isready`).
+- Dans le réseau Compose, l'API joint la base par son nom de service, `db` : `localhost` désignerait le conteneur de l'API lui-même.
+- Toutes les variables sont dans `.env.example` ; le vrai `.env` n'est jamais commité.
+
+Commandes utiles :
+
+```bash
+docker compose ps                  # état des services (db doit être healthy)
+docker compose logs -f api         # logs de l'API
+docker compose exec api whoami     # affiche app : l'API ne tourne pas en root
+docker compose down                # arrête la stack, les données restent dans le volume
+docker compose down -v             # arrête la stack ET supprime les données
+```
+
+## Lancer le projet en local (sans Docker)
+
+Prérequis : Git, Python 3.12 ou plus récent, Node.js 22.12 ou plus récent.
 
 **API**, dans un premier terminal :
 
@@ -115,14 +142,18 @@ La configuration passe par des variables d'environnement (ou un fichier `backend
 
 ```text
 .
+├── compose.yml              stack Docker : db, api, front
+├── .env.example             variables de la stack (copier en .env)
 ├── backend/                 API FastAPI
 │   ├── app/                 code (routes, services, domaine, modèles)
 │   ├── tests/               tests pytest (SQLite en mémoire)
+│   ├── Dockerfile           image multi-stage de l'API (utilisateur non-root)
 │   ├── pyproject.toml       configuration Ruff et pytest
 │   └── requirements*.txt    dépendances épinglées
 └── frontend/                application React
     ├── src/                 composants, pages et tests Vitest
     ├── e2e/                 tests Playwright
+    ├── Dockerfile           build Node puis nginx non-root sur le port 8080
     ├── nginx.conf           configuration nginx pour servir le front dans un conteneur
     └── playwright.config.ts
 ```
@@ -142,8 +173,8 @@ Le détail des consignes est dans la fiche **« TP DropZone »**.
 
 | Partie | Contenu | État |
 |---|---|---|
-| 1 | Dépôt d'aplomb : audit, README, `main` protégée, Conventional Commits, version `v0.1.0` | en cours |
-| 2 | Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example` | à faire |
+| 1 | Dépôt d'aplomb : audit, README, `main` protégée, Conventional Commits, version `v0.1.0` | fait |
+| 2 | Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example` | fait |
 | 3 | Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge | à faire |
 | 4 | Déploiement continu : images sur ghcr.io, front sur GitHub Pages, release à chaque tag | à faire |
 | 5 | Observer : health checks Docker, logs structurés, métriques `/metrics`, Uptime Kuma | à faire |

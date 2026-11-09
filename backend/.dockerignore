@@ -1,0 +1,16 @@
+# Seuls requirements.txt et app/ sont copiés dans l'image ; le reste n'a pas à être envoyé au build.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+tests/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.db
+.env
+.env.*
+Dockerfile
+.dockerignore

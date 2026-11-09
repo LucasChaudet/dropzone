@@ -1,0 +1,12 @@
+# node_modules est réinstallé dans l'image par npm ci ; les sorties de build et de tests n'y ont pas leur place.
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+*.tsbuildinfo
+.env
+.env.*
+Dockerfile
+.dockerignore
