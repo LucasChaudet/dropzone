@@ -12,6 +12,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Image Docker du front : build Node puis nginx non-root sur le port 8080.
 - `compose.yml` : stack complète (PostgreSQL 16 avec volume et healthcheck, API, front) lancée en une commande.
 - `.env.example` avec toutes les variables de la stack.
+- Intégration continue GitHub Actions : lint, tests backend, tests frontend, puis E2E Playwright sur la stack Docker ; badge dans le README.
+- Tests des commandes côté API, test du composant `DropCard`, scénarios E2E « commander décrémente le stock » et « un drop épuisé désactive le bouton ».
 
 ### Modifié
 
