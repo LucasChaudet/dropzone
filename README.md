@@ -130,6 +130,50 @@ Lancer un job sur son poste avec [act](https://nektosact.com/) (Docker requis), 
 act pull_request -j backend-tests
 ```
 
+## Déploiement continu
+
+Une version se publie en posant un **tag annoté** `vX.Y.Z` sur `main` (après avoir mis à jour le [CHANGELOG](CHANGELOG.md)) :
+
+```bash
+git checkout main
+git pull
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
+```
+
+Le workflow [`.github/workflows/cd.yml`](.github/workflows/cd.yml) publie alors :
+
+| Livrable | Où |
+|---|---|
+| Image de l'API, tags `0.2.0`, `0.2`, `sha-…` | `ghcr.io/lucaschaudet/dropzone-api` |
+| Image du front, mêmes tags | `ghcr.io/lucaschaudet/dropzone-front` |
+| Front statique | <https://lucaschaudet.github.io/dropzone/> |
+| Release avec notes générées | [Releases](https://github.com/LucasChaudet/dropzone/releases), créée quand images et Pages sont publiées |
+
+- Chaque job n'a que les droits dont il a besoin (`packages: write` pour les images, `pages: write` pour Pages, `contents: write` pour la release) ; ghcr.io est joint avec le jeton `GITHUB_TOKEN` du run, sans mot de passe.
+- Le CD ne relance pas les tests : seul `main` est tagué, et la CI y est obligatoire.
+- Sur Pages, il n'y a pas de nginx pour rediriger `/api` : le front appelle l'adresse donnée par la variable de dépôt `VITE_API_URL` (*Settings → Secrets and variables → Actions → Variables*), `http://localhost:8000` par défaut. Sans API joignable, la page affiche « L'API est injoignable ».
+- Réglages GitHub : *Settings → Pages* : source « GitHub Actions » ; *Settings → Environments → github-pages* : règle de déploiement autorisant les tags `v*` ; packages `dropzone-api` et `dropzone-front` en visibilité publique.
+
+### Lancer une version publiée
+
+[`compose.release.yml`](compose.release.yml) lance la stack à partir des images du registre, sans aucun build. La version est la variable `DROPZONE_VERSION` (dans `.env`, sans le `v`).
+
+```bash
+docker compose down                              # arrête la stack de développement (données gardées)
+docker compose -f compose.release.yml pull
+docker compose -f compose.release.yml up -d --wait
+docker compose -f compose.release.yml ps         # colonne IMAGE : …:0.2.0
+```
+
+### Retour à la version précédente (rollback)
+
+1. Dans `.env`, remettre l'ancienne version, par exemple `DROPZONE_VERSION=0.2.0` (PowerShell, sans modifier le fichier : `$env:DROPZONE_VERSION="0.2.0"`).
+2. Relancer : `docker compose -f compose.release.yml up -d --wait`. Compose remplace les conteneurs `api` et `front` par ceux de l'ancienne image, déjà publiée : rien n'est reconstruit.
+3. Vérifier : `docker compose -f compose.release.yml ps` affiche les images `…:0.2.0`, et <http://localhost:8000/health/ready> renvoie la version `0.2.0`.
+
+Le rollback ne revient pas sur les **données** : les commandes passées restent dans la base, et un changement de schéma fait par la nouvelle version n'est pas annulé.
+
 ## API
 
 | Requête | Réponse |
@@ -200,7 +244,7 @@ Le détail des consignes est dans la fiche **« TP DropZone »**.
 | 1 | Dépôt d'aplomb : audit, README, `main` protégée, Conventional Commits, version `v0.1.0` | fait |
 | 2 | Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example` | fait |
 | 3 | Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge | fait |
-| 4 | Déploiement continu : images sur ghcr.io, front sur GitHub Pages, release à chaque tag | à faire |
+| 4 | Déploiement continu : images sur ghcr.io, front sur GitHub Pages, release à chaque tag | fait |
 | 5 | Observer : health checks Docker, logs structurés, métriques `/metrics`, Uptime Kuma | à faire |
 
 ## Licence

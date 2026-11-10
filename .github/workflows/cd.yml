@@ -1,0 +1,122 @@
+name: CD
+
+# Publie une version quand un tag vX.Y.Z est poussé sur un commit de main.
+# Pas de tests ici : seul main est tagué, et tout ce qui arrive sur main est déjà passé par la CI obligatoire.
+on:
+  push:
+    tags: ["v*"]
+
+# Aucun droit par défaut : chaque job reçoit seulement ce dont il a besoin.
+permissions: {}
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    name: Image ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: dropzone-api
+            context: backend
+          - image: dropzone-front
+            context: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      # Les noms d'images doivent être en minuscules (LucasChaudet -> lucaschaudet).
+      - name: Image name
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Pas de mot de passe : le jeton GITHUB_TOKEN du run suffit, avec packages: write.
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.name.outputs.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  pages:
+    name: Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Pages sert le site sous /<dépôt>/ : les fichiers et le routeur doivent connaître ce préfixe.
+      # Sans nginx pour rediriger /api, l'adresse de l'API vient de la variable de dépôt VITE_API_URL.
+      - name: Build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:8000' }}
+        run: npm run build -- --base=/${{ github.event.repository.name }}/
+
+      # Une URL comme /drops/3 rechargée renvoie la 404 de Pages : elle sert donc l'application.
+      - name: Single-page app fallback
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: frontend/dist
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  release:
+    name: Release
+    needs: [images, pages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag

@@ -6,6 +6,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.2.0] - 2026-11-10
+
 ### Ajouté
 
 - Image Docker multi-stage de l'API, lancée par un utilisateur non-root sur le port 8000.
@@ -14,6 +16,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - `.env.example` avec toutes les variables de la stack.
 - Intégration continue GitHub Actions : lint, tests backend, tests frontend, puis E2E Playwright sur la stack Docker ; badge dans le README.
 - Tests des commandes côté API, test du composant `DropCard`, scénarios E2E « commander décrémente le stock » et « un drop épuisé désactive le bouton ».
+- Déploiement continu sur tag `v*` : images `dropzone-api` et `dropzone-front` publiées sur ghcr.io, front publié sur GitHub Pages, release GitHub avec notes générées.
+- `compose.release.yml` : lancement d'une version publiée depuis les images du registre, et procédure de retour à la version précédente.
 
 ### Modifié
 
@@ -30,5 +34,6 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Tests pytest et Vitest, un scénario Playwright, lint Ruff et ESLint.
 - Documentation du dépôt : `AUDIT.md`, `CONTRIBUTING.md`, ce `CHANGELOG.md`, modèle de pull request.
 
-[Non publié]: https://github.com/LucasChaudet/dropzone/compare/v0.1.0...HEAD
+[Non publié]: https://github.com/LucasChaudet/dropzone/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/LucasChaudet/dropzone/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LucasChaudet/dropzone/releases/tag/v0.1.0
