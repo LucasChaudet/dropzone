@@ -31,6 +31,13 @@ services:
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
     ports:
       - "${API_PORT:-8000}:8000"
+    # Déclaré ici aussi : les images publiées avant la 1.0.0 n'ont pas de HEALTHCHECK.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       db:
         condition: service_healthy
@@ -40,8 +47,15 @@ services:
     image: ghcr.io/lucaschaudet/dropzone-front:${DROPZONE_VERSION:?définir DROPZONE_VERSION (ex. 0.2.0)}
     ports:
       - "${FRONT_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

@@ -40,7 +40,9 @@ services:
     ports:
       - "${FRONT_PORT:-8080}:8080"
     depends_on:
-      - api
+      # Le front attend que l'API réponde (HEALTHCHECK de l'image), sinon nginx renvoie des 502.
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
