@@ -6,6 +6,19 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [1.0.0] - 2026-11-10
+
+### Ajouté
+
+- `HEALTHCHECK` dans les images de l'API (`GET /health`) et du front ; dans Compose, `front` attend que `api` soit `healthy`.
+- Logs JSON : une ligne par événement, avec pour chaque requête la méthode, le chemin, le statut et la durée.
+- Endpoint `GET /metrics` au format Prometheus : nombre de requêtes et latence par route, sans `/health` ni `/metrics`.
+- `compose.monitoring.yml` : supervision avec Uptime Kuma, sonde sur `/health/ready` et notification ntfy.
+
+### Corrigé
+
+- Quand la base ne répond pas, `GET /health/ready` renvoie `503` en quelques secondes au lieu de rester bloqué (délai de connexion de 3 s).
+
 ## [0.3.0] - 2026-11-10
 
 ### Ajouté
@@ -40,7 +53,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Tests pytest et Vitest, un scénario Playwright, lint Ruff et ESLint.
 - Documentation du dépôt : `AUDIT.md`, `CONTRIBUTING.md`, ce `CHANGELOG.md`, modèle de pull request.
 
-[Non publié]: https://github.com/LucasChaudet/dropzone/compare/v0.3.0...HEAD
+[Non publié]: https://github.com/LucasChaudet/dropzone/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/LucasChaudet/dropzone/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/LucasChaudet/dropzone/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LucasChaudet/dropzone/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LucasChaudet/dropzone/releases/tag/v0.1.0

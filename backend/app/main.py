@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CollectorRegistry
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app import __version__
 from app.config import Settings, get_settings
@@ -64,6 +66,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(drops.router)
+
+    # Prometheus metrics on GET /metrics: request count and latency per route.
+    # Health checks and scrapes are left out, they would drown the real traffic.
+    # One registry per application, so that each test gets fresh counters.
+    Instrumentator(
+        excluded_handlers=["^/health", "^/metrics$"],
+        registry=CollectorRegistry(),
+    ).instrument(app).expose(app, include_in_schema=False)
     return app
 
 

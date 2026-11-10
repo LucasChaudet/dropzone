@@ -1,0 +1,19 @@
+# Supervision : Uptime Kuma sonde l'API et envoie une alerte quand elle ne répond plus.
+# À combiner avec la stack (même réseau, l'API s'y appelle "api") :
+#   docker compose -f compose.yml -f compose.monitoring.yml up -d --wait
+# ou avec une version publiée :
+#   docker compose -f compose.release.yml -f compose.monitoring.yml up -d --wait
+# Interface : http://localhost:3001
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    ports:
+      - "${UPTIME_KUMA_PORT:-3001}:3001"
+    volumes:
+      # Comptes, sondes et notifications sont conservés entre deux redémarrages.
+      - uptime-kuma-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  uptime-kuma-data:
