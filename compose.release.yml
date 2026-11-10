@@ -1,0 +1,48 @@
+# Stack DropZone lancée depuis les images publiées sur ghcr.io (aucun build).
+# La version est une variable : DROPZONE_VERSION=0.2.0 dans .env, ou dans l'environnement.
+#   docker compose -f compose.release.yml pull
+#   docker compose -f compose.release.yml up -d --wait
+# Retour à la version précédente : changer DROPZONE_VERSION, puis relancer la même commande `up`.
+
+name: dropzone
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?copier .env.example en .env}
+      POSTGRES_USER: ${POSTGRES_USER:?copier .env.example en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copier .env.example en .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/lucaschaudet/dropzone-api:${DROPZONE_VERSION:?définir DROPZONE_VERSION (ex. 0.2.0)}
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  front:
+    image: ghcr.io/lucaschaudet/dropzone-front:${DROPZONE_VERSION:?définir DROPZONE_VERSION (ex. 0.2.0)}
+    ports:
+      - "${FRONT_PORT:-8080}:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  db-data:
