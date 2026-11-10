@@ -18,7 +18,9 @@ def make_engine(database_url: str) -> Engine:
             # One shared connection, otherwise each session gets an empty database.
             options["poolclass"] = StaticPool
         return create_engine(database_url, **options)
-    return create_engine(database_url, pool_pre_ping=True)
+    # connect_timeout: when the database is down, readiness answers 503 in seconds
+    # instead of hanging until the client gives up.
+    return create_engine(database_url, pool_pre_ping=True, connect_args={"connect_timeout": 3})
 
 
 class Database:
