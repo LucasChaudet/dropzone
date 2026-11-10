@@ -174,12 +174,80 @@ docker compose -f compose.release.yml ps         # colonne IMAGE : …:0.2.0
 
 Le rollback ne revient pas sur les **données** : les commandes passées restent dans la base, et un changement de schéma fait par la nouvelle version n'est pas annulé.
 
+## Monitoring
+
+### Health checks
+
+| Service | Sonde | Ce qu'elle vérifie |
+|---|---|---|
+| `db` | `pg_isready` (Compose) | PostgreSQL accepte les connexions |
+| `api` | `HEALTHCHECK` de l'image : `GET /health` (Python `urllib`, l'image slim n'a ni `curl` ni `wget`) | **liveness** : le processus répond |
+| `front` | `HEALTHCHECK` de l'image : `wget` sur `/` | nginx sert la page |
+
+Dans Compose, chaque service attend que celui dont il dépend soit `healthy` : `api` après `db`, `front` après `api`.
+
+```bash
+docker compose ps                                              # trois services (healthy)
+docker inspect --format "{{json .State.Health}}" dropzone-api-1  # historique des sondes de l'API
+```
+
+`GET /health` (liveness) sert au `HEALTHCHECK` : un processus qui répond ne doit pas être redémarré parce que la base est en panne. `GET /health/ready` (readiness, `503` si la base ne répond pas) sert à la sonde Uptime Kuma : elle dit si l'application peut vraiment servir les utilisateurs.
+
+### Logs structurés
+
+L'API écrit **une ligne JSON par événement** sur la sortie standard (`backend/app/logging_config.py`, bibliothèque `python-json-logger`) : `timestamp`, `level`, `logger`, `message`, et pour chaque requête `method`, `path`, `status`, `duration_ms`.
+
+```json
+{"level": "INFO", "logger": "app", "message": "request", "method": "GET", "path": "/drops", "status": 200, "duration_ms": 2.9, "timestamp": "2026-11-10T10:57:01.413458+00:00"}
+```
+
+```bash
+docker compose logs api --no-log-prefix                                    # toutes les lignes
+docker compose logs api --no-log-prefix | jq -c "select(.status >= 500)"   # les erreurs 500 (avec jq)
+```
+
+Sans `jq` (Windows PowerShell) :
+
+```powershell
+docker compose logs api --no-log-prefix | ConvertFrom-Json | Where-Object status -ge 500
+```
+
+Les appels à `/health` et `/metrics` (toutes les quelques secondes) sont écrits au niveau `DEBUG` : ils ne noient pas les vraies requêtes.
+
+### Métriques
+
+<http://localhost:8000/metrics> expose les métriques au format Prometheus (bibliothèque `prometheus-fastapi-instrumentator`) : `http_requests_total` (nombre de requêtes par route, méthode et famille de statut) et `http_request_duration_seconds` (latence par route). Les routes sont regroupées par modèle (`/drops/{drop_id}`), et `/health` et `/metrics` sont exclues pour ne compter que le trafic réel.
+
+### Supervision avec Uptime Kuma
+
+[`compose.monitoring.yml`](compose.monitoring.yml) ajoute Uptime Kuma à la stack :
+
+```bash
+docker compose -f compose.yml -f compose.monitoring.yml up -d --wait
+```
+
+Réglages, une seule fois, dans <http://localhost:3001> (ils sont gardés dans le volume `uptime-kuma-data`) :
+
+1. Créer le compte administrateur.
+2. **Notification** (*Paramètres → Notifications → Configurer une notification*) : type **ntfy**, serveur `https://ntfy.sh`, un sujet difficile à deviner (ex. `dropzone-<pseudo>-alertes`) ; s'abonner à ce sujet dans l'application ntfy (téléphone) ou sur <https://ntfy.sh/>.
+3. **Sonde** (*Ajouter une sonde*) : type **HTTP(s)**, nom « API DropZone », URL `http://api:8000/health/ready` (nom du service dans le réseau Compose), intervalle 20 s, cocher la notification ntfy.
+
+Tester l'alerte :
+
+```bash
+docker compose stop db     # /health/ready répond 503 : la sonde passe DOWN, la notification part
+docker compose start db    # la sonde redevient UP, une notification le signale
+```
+
+Limite : Uptime Kuma tourne sur la même machine que l'application. Si la machine entière tombe, personne n'est prévenu ; il faudrait une sonde externe (un second Uptime Kuma ailleurs, ou un service en ligne).
+
 ## API
 
 | Requête | Réponse |
 |---|---|
 | `GET /health` | `200` : le processus répond (liveness) |
 | `GET /health/ready` | `200` si la base répond, `503` sinon (readiness) |
+| `GET /metrics` | métriques au format Prometheus |
 | `GET /drops?status=live` | `200` : la liste triée par id, filtre facultatif `upcoming`, `live` ou `sold_out` |
 | `GET /drops/{id}` | `200` le drop · `404` |
 | `POST /drops` | `201` le drop créé · `422` données invalides |
@@ -245,7 +313,7 @@ Le détail des consignes est dans la fiche **« TP DropZone »**.
 | 2 | Conteneuriser : images Docker de l'API et du front, `compose.yml` avec PostgreSQL, `.env.example` | fait |
 | 3 | Intégration continue : workflow GitHub Actions (lint, tests, E2E), tests manquants, badge | fait |
 | 4 | Déploiement continu : images sur ghcr.io, front sur GitHub Pages, release à chaque tag | fait |
-| 5 | Observer : health checks Docker, logs structurés, métriques `/metrics`, Uptime Kuma | à faire |
+| 5 | Observer : health checks Docker, logs structurés, métriques `/metrics`, Uptime Kuma | fait |
 
 ## Licence
 
