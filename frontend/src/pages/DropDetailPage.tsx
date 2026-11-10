@@ -26,6 +26,17 @@ export function DropDetailPage() {
     [id],
   )
 
+  // The browser tab shows the product of the drop being viewed.
+  const product = drop?.product
+  useEffect(() => {
+    if (!product) return
+    const previous = document.title
+    document.title = `${product} · DropZone`
+    return () => {
+      document.title = previous
+    }
+  }, [product])
+
   useEffect(() => {
     load()
   }, [load])
