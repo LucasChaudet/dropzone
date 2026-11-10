@@ -45,6 +45,18 @@ describe('DropDetailPage', () => {
     expect(screen.getByTestId('remaining')).toHaveTextContent('1 / 100 paires restantes')
   })
 
+  it('shows the product in the browser tab title', async () => {
+    document.title = 'DropZone'
+    vi.mocked(api.getDrop).mockResolvedValue(makeDrop({ product: 'Jordan 4 « Mayenne »' }))
+    const { unmount } = renderPage()
+
+    await screen.findByRole('heading', { name: 'Jordan 4 « Mayenne »' })
+    expect(document.title).toBe('Jordan 4 « Mayenne » · DropZone')
+
+    unmount()
+    expect(document.title).toBe('DropZone')
+  })
+
   it('disables the button when the drop is sold out', async () => {
     vi.mocked(api.getDrop).mockResolvedValue(makeDrop({ remaining: 0, status: 'sold_out' }))
     renderPage()

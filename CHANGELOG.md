@@ -6,6 +6,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.3.0] - 2026-11-10
+
+### Ajouté
+
+- L'onglet du navigateur affiche le nom du produit sur la page détail d'un drop.
+
 ## [0.2.0] - 2026-11-10
 
 ### Ajouté
@@ -34,6 +40,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Tests pytest et Vitest, un scénario Playwright, lint Ruff et ESLint.
 - Documentation du dépôt : `AUDIT.md`, `CONTRIBUTING.md`, ce `CHANGELOG.md`, modèle de pull request.
 
-[Non publié]: https://github.com/LucasChaudet/dropzone/compare/v0.2.0...HEAD
+[Non publié]: https://github.com/LucasChaudet/dropzone/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/LucasChaudet/dropzone/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LucasChaudet/dropzone/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LucasChaudet/dropzone/releases/tag/v0.1.0
