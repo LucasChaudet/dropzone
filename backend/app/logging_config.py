@@ -1,32 +1,29 @@
-"""Logs on stdout, in plain text: one line per event."""
+"""Logs on stdout, in JSON: one object per line and per event."""
 
 import logging
 import sys
 
-# Attributes present on every log record: anything else was passed with `extra=`.
-_STANDARD_ATTRIBUTES = set(vars(logging.makeLogRecord({}))) | {
-    "message",
-    "asctime",
-    "color_message",
-}
+from pythonjsonlogger.core import RESERVED_ATTRS
+from pythonjsonlogger.json import JsonFormatter
 
 
-class TextFormatter(logging.Formatter):
-    """Classic text line, followed by the `extra=` fields as key=value pairs."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        line = super().format(record)
-        extras = " ".join(
-            f"{key}={value}"
-            for key, value in vars(record).items()
-            if key not in _STANDARD_ATTRIBUTES
-        )
-        return f"{line} {extras}" if extras else line
+def make_formatter() -> JsonFormatter:
+    """Fields of every line: timestamp, level, logger, message, plus the `extra=` fields
+    (for each request: method, path, status, duration_ms)."""
+    return JsonFormatter(
+        "{levelname}{name}{message}",
+        style="{",
+        rename_fields={"levelname": "level", "name": "logger"},
+        timestamp=True,
+        # Uvicorn adds a colored copy of its messages: useless in JSON.
+        reserved_attrs=[*RESERVED_ATTRS, "color_message"],
+        json_ensure_ascii=False,
+    )
 
 
 def setup_logging(level: str = "INFO") -> None:
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(TextFormatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+    handler.setFormatter(make_formatter())
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(level.upper())
